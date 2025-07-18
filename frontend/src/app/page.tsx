@@ -1,8 +1,17 @@
 "use client";
 import { useState } from "react";
 
+type FormData = {
+  age: string;
+  sex: "male" | "female";
+  bmi: string;
+  children: string;
+  smoker: "yes" | "no";
+  region: "northeast" | "northwest" | "southeast" | "southwest";
+};
+
 export default function Home() {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     age: "",
     sex: "male",
     bmi: "",
@@ -10,18 +19,26 @@ export default function Home() {
     smoker: "no",
     region: "northeast",
   });
+
   const [prediction, setPrediction] = useState<number | null>(null);
   const [trainingLoss, setTrainingLoss] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setForm((prevForm) => ({
+      ...prevForm,
+      [name]: value,
+    }));
     setPrediction(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
       const response = await fetch("http://localhost:5001/predict", {
         method: "POST",
@@ -30,7 +47,7 @@ export default function Home() {
       });
       const data = await response.json();
       setPrediction(data.predicted_charges);
-      setTrainingLoss(data.training_loss)
+      setTrainingLoss(data.training_loss);
     } catch (error) {
       console.error("Prediction failed:", error);
       alert("Something went wrong. Please try again.");
@@ -42,7 +59,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-gray-100 to-blue-100 p-8">
       <h1 className="text-4xl font-bold text-blue-700 mb-2">
-        Linear Regression Model for Insurance Charge Prediction
+        Insurance Charges Predictor
       </h1>
       <p className="text-center text-gray-600 mb-10 max-w-xl">
         AI-powered prediction model that estimates insurance charges based on demographic and health factors
@@ -62,10 +79,10 @@ export default function Home() {
                 <input
                   name={field.name}
                   type={field.type}
-                  value={(form as any)[field.name]}
+                  value={form[field.name as keyof FormData]}
                   onChange={handleChange}
                   placeholder={field.placeholder}
-                  className="w-full border-2 border-black rounded px-3 py-2 focus:outline-none focus:border-black placeholder:text-gray-600 placeholder:italic text-gray-600"
+                  className="w-full border-2 border-black rounded px-3 py-2 focus:outline-none focus:border-black placeholder:text-gray-400 placeholder:italic text-black"
                   required
                 />
               </div>
@@ -80,13 +97,15 @@ export default function Home() {
                 <label className="block text-base font-semibold text-gray-600 mb-1">{select.label}</label>
                 <select
                   name={select.name}
-                  value={(form as any)[select.name]}
+                  value={form[select.name as keyof FormData]}
                   onChange={handleChange}
-                  className="w-full border-2 border-black rounded px-3 py-2 focus:outline-none focus:border-black text-gray-600"
+                  className="w-full border-2 border-black rounded px-3 py-2 focus:outline-none focus:border-black text-black"
                   required
                 >
                   {select.options.map((option) => (
-                    <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>
+                    <option key={option} value={option}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -109,12 +128,14 @@ export default function Home() {
               <div className="text-center border-2 border-black rounded-lg p-4">
                 <h3 className="text-gray-600">Estimated Annual Charges</h3>
                 <p className="text-3xl font-bold text-blue-700">${prediction}</p>
+
                 {form.smoker === "yes" && (
                   <p className="text-sm text-red-600 mt-2">
                     High Risk: Smoking status significantly increases charges
                   </p>
                 )}
               </div>
+
               <div className="text-sm text-gray-600 space-y-1">
                 {[
                   { label: "Age", value: form.age },
@@ -127,22 +148,30 @@ export default function Home() {
                   <p key={item.label}><strong>{item.label}:</strong> {item.value}</p>
                 ))}
               </div>
-              {/* === NEW SECTION: model loss summary === */}
-              {trainingLoss !== null && (
-                <div className="pt-4 mt-4 border-t border-gray-300 text-gray-700 text-sm">
-                  <p>
-                    <strong>Model training RMSE:</strong> ${trainingLoss}
-                  </p>
-                  <p className="italic">
-                    On average, the model’s predictions differ from the actual charges in the training data
-                    by about <strong>${trainingLoss}</strong>. A lower RMSE indicates a more accurate model.
-                  </p>
-                </div>
-              )}
+              <div>
+                {trainingLoss !== null && (
+                  <>
+                    <h3 className="text-gray-600 mt-4 flex items-center justify-center gap-1">
+                      Model Training RMSE Loss
+                      <span
+                        className="cursor-pointer text-gray-400"
+                        title="RMSE (Root Mean Squared Error) shows how much the model's predictions deviate from actual values on average. Lower is better."
+                      >
+                        ℹ️
+                      </span>
+                    </h3>
+                    <p className="text-2xl text-center font-bold text-red-600">${trainingLoss}</p>
+                    <p className="text-sm text-center text-gray-500 mt-2 italic max-w-md mx-auto">
+                      This value reflects how well the model performed on the data it was trained with.
+                      It measures the average difference between actual and predicted charges.
+                    </p>
+                  </>
+                )}
+              </div>
             </>
           ) : (
             <p className="text-gray-500 text-center py-10">
-              Fill in the form and click "Predict Charges" to see the result.
+              Fill in the form and click &quot;Predict Charges&quot; to see the result.
             </p>
           )}
         </div>
