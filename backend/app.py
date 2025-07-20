@@ -4,10 +4,10 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+import os
 
 app = Flask(__name__)
-CORS(app)
-# CORS(app, origins="http://localhost:3000")  # Update this if deploying to Vercel
+CORS(app, origins="*")  # Allow all origins for simplicity
 
 # Load dataset
 data_url = 'https://raw.githubusercontent.com/JovianML/opendatasets/master/data/medical-charges.csv'
@@ -24,44 +24,35 @@ df_encoded = pd.get_dummies(df, columns=['region'], drop_first=False, dtype=int)
 inputs = df_encoded.drop('charges', axis=1)
 target = df_encoded['charges']
 
-# Split into training and test data
+# Train-test split
 input_train, input_test, target_train, target_test = train_test_split(
     inputs, target, test_size=0.2, random_state=42
 )
 
-# Train the model on training data
+# Train the model
 model = LinearRegression().fit(input_train, target_train)
 
-# Define RMSE function
+# RMSE function
 def rmse(y_true, y_pred):
-    return np.sqrt(np.mean(np.square(y_true - y_pred)))
+    return np.sqrt(np.mean((y_true - y_pred) ** 2))
 
-# Compute losses
-training_predictions = model.predict(input_train)
-test_predictions = model.predict(input_test)
-training_loss = rmse(target_train, training_predictions)
-test_loss = rmse(target_test, test_predictions)
+# Evaluate
+training_loss = rmse(target_train, model.predict(input_train))
+test_loss = rmse(target_test, model.predict(input_test))
 
-print(training_loss, test_loss)
-
-# Save input column structure for reindexing during prediction
+# Store input structure
 input_columns = input_train.columns.tolist()
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         input_data = request.json
-
-        # Convert input to DataFrame
         input_df = pd.DataFrame([input_data])
         input_df['sex'] = input_df['sex'].map({'male': 1, 'female': 0})
         input_df['smoker'] = input_df['smoker'].map({'yes': 1, 'no': 0})
         input_encoded = pd.get_dummies(input_df, columns=['region'], dtype=int)
-
-        # Align input with model's expected columns
         input_encoded = input_encoded.reindex(columns=input_columns, fill_value=0)
 
-        # Make prediction
         prediction = model.predict(input_encoded)[0]
 
         return jsonify({
@@ -75,4 +66,5 @@ def predict():
 
 if __name__ == "__main__":
     print("Starting Flask server...")
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5001))  # Use PORT from env if available
+    app.run(host="0.0.0.0", port=port)
