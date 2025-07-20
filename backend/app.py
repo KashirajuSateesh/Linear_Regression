@@ -6,7 +6,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
-CORS(app, origins="http://localhost:3000")  # Update this if deploying to Vercel
+CORS(app)
+# CORS(app, origins="http://localhost:3000")  # Update this if deploying to Vercel
 
 # Load dataset
 data_url = 'https://raw.githubusercontent.com/JovianML/opendatasets/master/data/medical-charges.csv'
