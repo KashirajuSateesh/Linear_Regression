@@ -3,6 +3,8 @@
 
 This project is a machine learning-powered web app that predicts **medical insurance charges** based on user inputs like age, BMI, smoking status, number of children, and region. It demonstrates the application of **linear regression** for real-world healthcare-related cost estimation.
 
+**Live Link**: [Insurance Charge Predictor](https://linear-regression-blush.vercel.app/)
+
 ## 📊 Problem Statement
 
 Insurance providers estimate individual charges based on multiple demographic and health-related factors. This project builds a regression model to predict these charges using a publicly available dataset.
